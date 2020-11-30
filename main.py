@@ -4,7 +4,7 @@ from PIL import ImageTk, Image
 from image_process import ImageProcess 
 
 
-class Viewer(tk.Frame):
+class Viewer(tk.Frame): 
     def __init__(self, master):
         FONT_SIZE = 13
         #image
@@ -16,6 +16,7 @@ class Viewer(tk.Frame):
         DEPTH_PLACE_X = IMAGE_WIDTH + INPUT_POSITION_X
         #button
         BUTTON_PLACE_X = 3.2*IMAGE_WIDTH + INPUT_POSITION_X
+        RUN_BUTTON_Y = INPUT_POSITION_Y + 40
 
         self.imgProc = ImageProcess()
         dobi = ImageTk.PhotoImage(Image.open('dobi.png'))
@@ -43,12 +44,18 @@ class Viewer(tk.Frame):
         shooting_button = tk.Button(overrelief='solid', text='Shooting', command=self.shotting)
         shooting_button.place(x=BUTTON_PLACE_X, y=INPUT_POSITION_Y)
 
+        run_button = tk.Button(overrelief='solid', text='Run', command=self.run)
+        run_button.place(x=BUTTON_PLACE_X, y=RUN_BUTTON_Y)
+        
     def upload_image_to_tkinter(self, label, img, *place):
         axis = place
         label.image= img
         label.configure(image=img)
         if axis != ():
             label.place(x=axis[0], y=axis[1])
+
+    def run(self):
+        self.imgProc.run()
 
     def shotting(self):
         self.imgProc.shotting()

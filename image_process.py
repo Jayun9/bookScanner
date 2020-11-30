@@ -20,8 +20,12 @@ class ImageProcess:
         color_frame = frames.get_color_frame()
 
         depth_image = np.asanyarray(depth_frame.get_data())
-        color_image = np.asanyarray(color_frame.get_data())
+        color_image = np.asanyarray(color_frame.get_data()) 
 
         depth_colormap = cv.applyColorMap(cv.convertScaleAbs(depth_image, alpha=0.03), cv.COLORMAP_JET)
         self.depth_colormap = np.swapaxes(depth_colormap, 0, 1)
         self.color_image = np.swapaxes(color_image, 0, 1)
+
+    def run(self):
+        pass
+

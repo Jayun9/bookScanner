@@ -11,16 +11,14 @@ class Viewer(tk.Frame):
         INPUT_POSITION_X = 10
         INPUT_POSITION_Y = 10
         INPUT_IMAGE_PLACE_Y = 30
-        IMAGE_WIDTH = 500
+        IMAGE_WIDTH = 400
         OUTPUT_PLACE_X = IMAGE_WIDTH + INPUT_POSITION_X
         DEPTH_PLACE_X = 2*IMAGE_WIDTH + INPUT_POSITION_X
         #button
-        BUTTON_PLACE_X = 3*IMAGE_WIDTH + INPUT_POSITION_X
+        BUTTON_PLACE_X = 3.5*IMAGE_WIDTH + INPUT_POSITION_X
 
         self.imgProc = ImageProcess()
-        depth_colormap = self.imgProc.depth_colormap
         dobi = ImageTk.PhotoImage(Image.open('dobi.png'))
-
 
         # input image view
         font = tf.Font(size=FONT_SIZE, weight='bold')
@@ -53,14 +51,15 @@ class Viewer(tk.Frame):
 
     def shotting(self):
         self.imgProc.shotting()
-        depth_image = ImageTk.PhotoImage(image=Image.fromarray(self.imgProc.depth_colormap))
+        depth_image_ndarray = self.imgProc.depth_colormap
+        depth_image = ImageTk.PhotoImage(image=Image.fromarray(depth_image_ndarray))
         self.depth_image.image = depth_image
         self.depth_image.configure(image=depth_image)
 
 
 def main():
     root = tk.Tk()
-    root.title('page dewarp book scanner!!')
+    root.title('졸업합시다')
     root.geometry("1600x960+50+50")
     root.resizable(False, False)
     app = Viewer(root)

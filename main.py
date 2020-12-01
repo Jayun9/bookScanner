@@ -17,6 +17,9 @@ class Viewer(tk.Frame):
         #button
         BUTTON_PLACE_X = 3.2*IMAGE_WIDTH + INPUT_POSITION_X
         RUN_BUTTON_Y = INPUT_POSITION_Y + 40
+        VISUAL_BUTTON_Y = RUN_BUTTON_Y + 40
+        ON_BUTTON_Y = VISUAL_BUTTON_Y + 40
+        OFF_BUTTON_Y = ON_BUTTON_Y + 40
 
         self.imgProc = ImageProcess()
         dobi = ImageTk.PhotoImage(Image.open('dobi.png'))
@@ -41,11 +44,26 @@ class Viewer(tk.Frame):
         self.upload_image_to_tkinter(self.depth_image, dobi, DEPTH_PLACE_X, INPUT_IMAGE_PLACE_Y)
 
         # shooting button
-        shooting_button = tk.Button(overrelief='solid', text='Shooting', command=self.shotting)
+        shooting_button = tk.Button(overrelief='solid', text='Capture!', command=self.shotting)
         shooting_button.place(x=BUTTON_PLACE_X, y=INPUT_POSITION_Y)
 
         run_button = tk.Button(overrelief='solid', text='Run', command=self.run)
         run_button.place(x=BUTTON_PLACE_X, y=RUN_BUTTON_Y)
+
+        visual_button = tk.Button(overrelief='solid', text='visual', command=self.visual)
+        visual_button.place(x=BUTTON_PLACE_X, y=VISUAL_BUTTON_Y)
+
+        on_button = tk.Button(overrelief='solid', text='on', command=self.on)
+        on_button.place(x=BUTTON_PLACE_X, y=ON_BUTTON_Y)
+        
+        off_button = tk.Button(overrelief='solid', text='off', command=self.off)
+        off_button.place(x=BUTTON_PLACE_X, y=OFF_BUTTON_Y)
+        
+    def on(self):
+        self.imgProc.on()
+
+    def off(self):
+        self.imgProc.off()
         
     def upload_image_to_tkinter(self, label, img, *place):
         axis = place
@@ -67,6 +85,8 @@ class Viewer(tk.Frame):
         input_image = ImageTk.PhotoImage(image=Image.fromarray(input_image_ndarray))
         self.upload_image_to_tkinter(self.input_image, input_image)
 
+    def visual(self):
+        self.imgProc.visual()
 
 def main():
     root = tk.Tk()

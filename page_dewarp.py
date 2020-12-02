@@ -13,10 +13,10 @@ import os
 import sys
 import datetime
 import cv2
-from PIL import Image
+from PIL import Image 
 import numpy as np
-import scipy.optimize
-
+import scipy.optimize 
+import matplotlib.pyplot as plt
 
 # for some reason pylint complains about cv2 members being undefined :(
 # pylint: disable=E1101pip
@@ -361,6 +361,7 @@ def blob_mean_and_tangent(contour):
     _, svd_u, _ = cv2.SVDecomp(moments_matrix)
 
     center = np.array([mean_x, mean_y])
+    # tangent = pca에서 lamda의 해당하는 친구 
     tangent = svd_u[:, 0].flatten().copy()
 
     return center, tangent
@@ -388,10 +389,14 @@ class ContourInfo(object):
         self.point0 = self.center + self.tangent * lxmin
         self.point1 = self.center + self.tangent * lxmax
 
+
         self.pred = None
         self.succ = None
 
     def proj_x(self, point):
+        # 50, 604
+        print(self.rect)
+        print(point)
         return np.dot(self.tangent, point.flatten()-self.center)
 
     def local_overlap(self, other):
@@ -466,7 +471,6 @@ def get_contours(name, small, pagemask, masktype):
 
         if tight_mask.sum(axis=0).max() > TEXT_MAX_THICKNESS:
             continue
-
         contours_out.append(ContourInfo(contour, rect, tight_mask))
 
     if DEBUG_LEVEL >= 2:
@@ -846,17 +850,7 @@ def imshow(image):
 
 
 def main():
-
-    if len(sys.argv) < 2:
-        print ('usage:', sys.argv[0], 'IMAGE1 [IMAGE2 ...]')
-        sys.exit(0)
-    
-    if DEBUG_LEVEL > 0 and DEBUG_OUTPUT != 'file':
-        cv2.namedWindow(WINDOW_NAME)
-
-    outfiles = []
-
-    for imgfile in sys.argv[1:]:
+    for imgfile in ['1.jpg']:
 
         img = cv2.imread(imgfile)
         small = resize_to_screen(img)
@@ -909,7 +903,6 @@ def main():
 
         outfile = remap_image(name, img, small, page_dims, params)
 
-        outfiles.append(outfile)
 
         print ('  wrote', outfile)
         print()

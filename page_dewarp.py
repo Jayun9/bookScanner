@@ -809,7 +809,6 @@ def remap_image(name, img, small, page_dims, params):
     page_xy_coords = page_xy_coords.astype(np.float32)
 
     image_points = project_xy(page_xy_coords, params)
-    print(image_points.shape)
     image_points = norm2pix(img.shape, image_points, False)
 
     image_x_coords = image_points[:, 0, 0].reshape(page_x_coords.shape)

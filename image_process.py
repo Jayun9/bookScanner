@@ -80,8 +80,9 @@ class ImageProcess:
 
         image_points, _ = cv.projectPoints(
             world, rotation_vector, translation_vector, K, np.zeros(5))
+        print(image_points)
         image_points = image_points.reshape((self.world_x, self.world_y, 2))
-
+        print()
         self.image_points = image_points
         print(image_points)
 
@@ -113,15 +114,15 @@ class ImageProcess:
         ], dtype=np.float32)
 
         self.image_list = np.array([
-            [-CENTER_X, -CENTER_Y], # 페이지 왼쪽 상단
-            [CENTER_X, -CENTER_Y], # 페이지 오른쪽 상단
-            [-CENTER_X, CENTER_Y], # 페이지 왼쪽 하단
-            [CENTER_X, CENTER_Y], # 페이지 오른쪽 하단
-            [0, 0], # 중앙
-            [-CENTER_C_X, -CENTER_C_Y], # 왼쪽 상단 중간
-            [CENTER_C_X, -CENTER_C_Y], # 오른쪽 상단 중간
-            [CENTER_C_X, CENTER_C_Y], # 오른쪽 하단 중간
-            [-CENTER_C_X, CENTER_C_Y], # 왼쪽 하단 중간
+            [0, 0], # 페이지 왼쪽 상단
+            [depth_x, 0],
+            [0, depth_y],
+            [depth_x, depth_y],
+            [CENTER_X, CENTER_Y], # center 
+            [CENTER_C_X, CENTER_C_Y], # 왼쪽 상단 중간
+            [CENTER_X + CENTER_C_X, CENTER_C_Y], # 오른쪽 상단 중간 
+            [CENTER_X + CENTER_C_X, CENTER_Y + CENTER_C_Y], # 오른쪽 하단 중간
+            [CENTER_C_X, CENTER_Y + CENTER_C_Y], # 왼쪽 하단 중간
         ], dtype=np.float32)
 
     def visual(self):

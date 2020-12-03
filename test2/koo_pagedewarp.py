@@ -1,8 +1,6 @@
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
-import sympy
-import pandas as pd
 from cv2 import cv2
 import scipy.integrate 
 
@@ -14,12 +12,12 @@ d = 0
 
 
 def main():
-    img = cv2.imread("view.jpg", cv2.IMREAD_GRAYSCALE)
-    dst = cv2.resize(img, dsize=(201,101), interpolation=cv2.INTER_AREA)
+    # img = cv2.imread("view.jpg", cv2.IMREAD_GRAYSCALE)
+    # dst = cv2.resize(img, dsize=(201,101), interpolation=cv2.INTER_AREA)
     book, booklist, imagelist = return_book_index()
     image_points = solve(book,booklist,imagelist)
+    print(image_points[100,50])
     
-    print(image_points)
 
 
 def return_book_index():
@@ -31,6 +29,7 @@ def return_book_index():
     y = f(x)
     len100 = int(integrate(f,100)[0])
     len0 = int(integrate(f,0)[0])
+    
     worldlist = [world[200,0],world[200,100],world[0,0],world[0,100]]
     imagelist = [np.array([200,len0]), np.array([200,len100]), np.array([0,len0]), np.array([0,len100])]
     worldlist = np.array(worldlist, dtype=np.float32)

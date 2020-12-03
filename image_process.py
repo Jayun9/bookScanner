@@ -5,16 +5,14 @@ import pyrealsense2 as rs
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
-
 class ImageProcess:
     def __init__(self):
         self.depth_colormap = None
         self.color_image = None
         self.pipeline = rs.pipeline()
         self.config = rs.config()
-        self.config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
-        self.config.enable_stream(
-            rs.stream.color, 640, 480, rs.format.bgr8, 30)
+        self.config.enable_stream(rs.stream.depth, 1280, 720, rs.format.z16, 6)
+        self.config.enable_stream(rs.stream.color, 1280, 720, rs.format.bgr8, 6)
         self.colorizer = rs.colorizer()
 
     def on(self):
@@ -26,15 +24,7 @@ class ImageProcess:
     def shotting(self):
         self.capture()
         self.filtering()
-        frames = self.pipeline.wait_for_frames()
-        color_frame = frames.get_color_frame()
-
         color_image = np.asanyarray(self.color_frame.get_data())
-
-        align = rs.align(rs.stream.color)
-        frameset = align.process(frames)
-        # self.aligned_depth_frame = frameset.get_depth_frame()
-        # colorized_depth = np.asanyarray(self.colorizer.colorize(self.aligned_depth_frame).get_data())
 
         self.depth_colormap = np.swapaxes(self.colorized_depth, 0, 1)
         self.color_image = np.swapaxes(color_image, 0, 1)
@@ -77,9 +67,6 @@ class ImageProcess:
     def run(self):
         self.depth_to_world()
         self.solve()
-        print(type(self.image_points))
-        print(self.image_points.shape)
-        print(self.image_points)
 
     def solve(self):
         world = self.world.reshape((self.world_x * self.world_y, 3))
@@ -108,12 +95,21 @@ class ImageProcess:
         self.world_list = np.array([
             self.world[self.world_x - 1, 0],
             self.world[self.world_x - 1, self.world_y - 1],
+            self.world[int(self.world_x * (1/3)), int(self.world_y * (1/3))],
+            self.world[int(self.world_x * (2/3)), int(self.world_y * (1/3))],
+            self.world[int(self.world_x * (1/3)), int(self.world_y * (2/3))],
+            self.world[int(self.world_x * (2/3)), int(self.world_y * (2/3))],
             self.world[0, 0],
             self.world[0, self.world_y - 1]
         ], dtype=np.float32)
+
         self.image_list = np.array([
             np.array([self.world_x - 1, 0]),
             np.array([self.world_x - 1, self.world_y - 1]),
+            np.array([int(self.world_x * (1/3)), int(self.world_y * (1/3))]),
+            np.array([int(self.world_x * (2/3)), int(self.world_y * (1/3))]),
+            np.array([int(self.world_x * (1/3)), int(self.world_y * (2/3))]),
+            np.array([int(self.world_x * (2/3)), int(self.world_y * (2/3))]),
             np.array([0, 0]),
             np.array([0, self.world_y - 1]),
         ], dtype=np.float32)

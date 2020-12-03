@@ -5,14 +5,16 @@ import pyrealsense2 as rs
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
+
 class ImageProcess:
     def __init__(self):
         self.depth_colormap = None
         self.color_image = None
         self.pipeline = rs.pipeline()
         self.config = rs.config()
-        self.config.enable_stream(rs.stream.depth, 1280, 720, rs.format.z16, 6)
-        self.config.enable_stream(rs.stream.color, 1280, 720, rs.format.bgr8, 6)
+        self.config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
+        self.config.enable_stream(
+            rs.stream.color, 640, 480, rs.format.bgr8, 30)
         self.colorizer = rs.colorizer()
 
     def on(self):
@@ -73,12 +75,15 @@ class ImageProcess:
         K = np.float32([[1, 0, 0],
                         [0, 1, 0],
                         [0, 0, 1]])
-        _, rotation_vector, translation_vector = cv.solvePnP(self.world_list, self.image_list, K, np.zeros(5))
+        _, rotation_vector, translation_vector = cv.solvePnP(
+            self.world_list, self.image_list, K, np.zeros(5))
 
-        image_points, _ = cv.projectPoints(world, rotation_vector, translation_vector, K, np.zeros(5))
+        image_points, _ = cv.projectPoints(
+            world, rotation_vector, translation_vector, K, np.zeros(5))
         image_points = image_points.reshape((self.world_x, self.world_y, 2))
 
         self.image_points = image_points
+        print(image_points)
 
     def depth_to_world(self):
         depth_x, depth_y = self.depth.shape
@@ -91,27 +96,32 @@ class ImageProcess:
         self.world[:, :, 2] = self.depth
 
         self.world_x, self.world_y, _ = self.world.shape
-        
+        CENTER_X = int(self.world_x / 2)
+        CENTER_C_X = int(CENTER_X / 2)
+        CENTER_Y = int(self.world_y / 2)
+        CENTER_C_Y = int(CENTER_Y / 2)
         self.world_list = np.array([
-            self.world[self.world_x - 1, 0],
-            self.world[self.world_x - 1, self.world_y - 1],
-            self.world[int(self.world_x * (1/3)), int(self.world_y * (1/3))],
-            self.world[int(self.world_x * (2/3)), int(self.world_y * (1/3))],
-            self.world[int(self.world_x * (1/3)), int(self.world_y * (2/3))],
-            self.world[int(self.world_x * (2/3)), int(self.world_y * (2/3))],
-            self.world[0, 0],
-            self.world[0, self.world_y - 1]
+            [0, 0, 0],
+            [depth_x, 0, 0],
+            [0, depth_y, 0],
+            [depth_x, depth_y, 0],
+            [CENTER_X, CENTER_Y, 0], # center 
+            [CENTER_C_X, CENTER_C_Y, 0], # 왼쪽 상단 중간
+            [CENTER_X + CENTER_C_X, CENTER_C_Y, 0], # 오른쪽 상단 중간 
+            [CENTER_X + CENTER_C_X, CENTER_Y + CENTER_C_Y, 0], # 오른쪽 하단 중간
+            [CENTER_C_X, CENTER_Y + CENTER_C_Y, 0], # 왼쪽 하단 중간
         ], dtype=np.float32)
 
         self.image_list = np.array([
-            np.array([self.world_x - 1, 0]),
-            np.array([self.world_x - 1, self.world_y - 1]),
-            np.array([int(self.world_x * (1/3)), int(self.world_y * (1/3))]),
-            np.array([int(self.world_x * (2/3)), int(self.world_y * (1/3))]),
-            np.array([int(self.world_x * (1/3)), int(self.world_y * (2/3))]),
-            np.array([int(self.world_x * (2/3)), int(self.world_y * (2/3))]),
-            np.array([0, 0]),
-            np.array([0, self.world_y - 1]),
+            [-CENTER_X, -CENTER_Y], # 페이지 왼쪽 상단
+            [CENTER_X, -CENTER_Y], # 페이지 오른쪽 상단
+            [-CENTER_X, CENTER_Y], # 페이지 왼쪽 하단
+            [CENTER_X, CENTER_Y], # 페이지 오른쪽 하단
+            [0, 0], # 중앙
+            [-CENTER_C_X, -CENTER_C_Y], # 왼쪽 상단 중간
+            [CENTER_C_X, -CENTER_C_Y], # 오른쪽 상단 중간
+            [CENTER_C_X, CENTER_C_Y], # 오른쪽 하단 중간
+            [-CENTER_C_X, CENTER_C_Y], # 왼쪽 하단 중간
         ], dtype=np.float32)
 
     def visual(self):

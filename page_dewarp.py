@@ -124,6 +124,7 @@ def round_nearest_multiple(i, factor):
         return i + factor - rem
 
 
+# 이거 중요하게 봐야 할듯 어쨋든 좌표는 이렇게 구함
 def pix2norm(shape, pts):
     height, width = shape[:2]
     scl = 2.0/(max(height, width))
@@ -361,7 +362,7 @@ def blob_mean_and_tangent(contour):
     _, svd_u, _ = cv2.SVDecomp(moments_matrix)
 
     center = np.array([mean_x, mean_y])
-    # tangent = pca에서 lamda의 해당하는 친구 
+    # tangent 가장 분산이 큰 방향의 백터
     tangent = svd_u[:, 0].flatten().copy()
 
     return center, tangent
@@ -378,7 +379,7 @@ class ContourInfo(object):
         self.center, self.tangent = blob_mean_and_tangent(contour)
 
         self.angle = np.arctan2(self.tangent[1], self.tangent[0])
-
+ 
         clx = [self.proj_x(point) for point in contour]
 
         lxmin = min(clx)
@@ -394,9 +395,7 @@ class ContourInfo(object):
         self.succ = None
 
     def proj_x(self, point):
-        # 50, 604
-        print(self.rect)
-        print(point)
+        # center와 point를 이어주는 벡터에 x사영
         return np.dot(self.tangent, point.flatten()-self.center)
 
     def local_overlap(self, other):
@@ -528,7 +527,9 @@ def assemble_spans(name, small, pagemask, cinfo_list):
             cinfo_list.remove(cinfo)
             # add to span
             cur_span.append(cinfo)
+            #local_xrng[0]은 마스크 무게중심 부터 가장 왼쪽의 윤곽선의 x사영 1은 큰거
             width += cinfo.local_xrng[1] - cinfo.local_xrng[0]
+            #width 윤곽선의 총 길이가 되겠다. 
             # set successor
             cinfo = cinfo.succ
 
@@ -552,17 +553,17 @@ def sample_spans(shape, spans):
 
         for cinfo in span:
 
-            yvals = np.arange(cinfo.mask.shape[0]).reshape((-1, 1))
+            yvals = np.arange(cinfo.mask.shape[0]).reshape((-1, 1)) #mask의 y좌표
             totals = (yvals * cinfo.mask).sum(axis=0)
-            means = totals / cinfo.mask.sum(axis=0)
+            means = totals / cinfo.mask.sum(axis=0) # mask y축의 중간 값
 
-            xmin, ymin = cinfo.rect[:2]
+            xmin, ymin = cinfo.rect[:2] #마스크의 좌측 상단 좌표 
 
-            step = SPAN_PX_PER_STEP
+            step = SPAN_PX_PER_STEP # 20
             start = ((len(means)-1) % step) / 2
 
             contour_points += [(x+xmin, means[x]+ymin)
-                               for x in range(int(start), len(means), step)]
+                               for x in range(int(start), len(means), step)] # 마스크에 두께 중간의 좌표 20픽셀마다 점으로 넣어줌
 
         contour_points = np.array(contour_points,
                                   dtype=np.float32).reshape((-1, 1, 2))
@@ -808,6 +809,7 @@ def remap_image(name, img, small, page_dims, params):
     page_xy_coords = page_xy_coords.astype(np.float32)
 
     image_points = project_xy(page_xy_coords, params)
+    print(image_points.shape)
     image_points = norm2pix(img.shape, image_points, False)
 
     image_x_coords = image_points[:, 0, 0].reshape(page_x_coords.shape)
@@ -879,7 +881,7 @@ def main():
             print ('skipping', name, 'because only', len(spans), 'spans')
             continue
 
-        span_points = sample_spans(small.shape, spans)
+        span_points = sample_spans(small.shape, spans) # 이미지에서 실제 좌표는 아님
 
         print ('  got', len(spans), 'spans',)
         print ('with', sum([len(pts) for pts in span_points]), 'points.')

@@ -909,7 +909,6 @@ def main():
         print()
 
     print ('to convert to PDF (requires ImageMagick):')
-    print( '  convert -compress Group4 ' + ' '.join(outfiles) + ' output.pdf')
 
 
 if __name__ == '__main__':

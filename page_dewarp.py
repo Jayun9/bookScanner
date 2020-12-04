@@ -196,6 +196,9 @@ def get_default_params(corners, ycoords, xcoords):
                         np.array(cubic_slopes).flatten(),
                         ycoords.flatten()) +
                        tuple(xcoords))
+    # params = np.hstack((np.array(rvec).flatten(),
+    #                     np.array(tvec).flatten(),
+    #                     np.array(cubic_slopes).flatten())) 
 
     return rough_dims, span_counts, params
 

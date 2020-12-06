@@ -1,4 +1,4 @@
-import cv2 as cv
+from cv2 import cv2 as cv
 import os
 import numpy as np
 import pyrealsense2 as rs
@@ -8,6 +8,7 @@ import scipy.optimize
 
 class ImageProcess:
     def __init__(self):
+        self.MARGIN = (50,50)
         self.IMAGE_SIZE = (1280, 720)
         self.depth_colormap = None
         self.color_image = None
@@ -29,15 +30,23 @@ class ImageProcess:
         self.capture()
         self.filtering()
         self.color_image_orign = np.asanyarray(self.color_frame.get_data())
+        color_x, color_y, _ = self.color_image_orign.shape
+        self.input_image = self.color_image_orign[self.MARGIN[0] : color_x - self.MARGIN[0], self.MARGIN[1] : color_y - self.MARGIN[1]]
+        color_resize = cv.resize(self.color_image_orign, dsize=(0,0), fx=0.3, fy=0.3, interpolation=cv.INTER_LINEAR)
+        depth_resize = cv.resize(self.colorized_depth, dsize=(0,0), fx=0.3, fy=0.3, interpolation=cv.INTER_LINEAR)
 
-        self.depth_colormap = np.swapaxes(self.colorized_depth, 0, 1)
-        self.color_image = np.swapaxes(self.color_image_orign, 0, 1)
+        self.depth_colormap = np.swapaxes(depth_resize, 0, 1)
+        self.color_image = np.swapaxes(color_resize, 0, 1)
         self.get_depth_info()
+        print(self.input_image.shape)
+        print(self.depth.shape)
 
     def get_depth_info(self):
         depth = np.asanyarray(self.aligned_depth_frame)
-        depth_zero = depth[np.where(depth >= 200)].min()
-        depth = depth - depth_zero
+        depth_x, depth_y = depth.shape
+        margin_depth = depth[self.MARGIN[0] : depth_x - self.MARGIN[0], self.MARGIN[1] : depth_y - self.MARGIN[1]]
+        depth_zero = margin_depth[np.where(margin_depth >= 200)].min()
+        depth = margin_depth - depth_zero
         self.interpolation(depth)
 
     def capture(self):
@@ -74,24 +83,26 @@ class ImageProcess:
         self.depth_to_world()
         params = self.solve()
         self.optimaize(params)
-        self.remap()
+        # self.remap()
 
     def interpolation(self, depth):
+        dsize = (self.IMAGE_SIZE[0] - (2 * self.MARGIN[0]), self.IMAGE_SIZE[1] - (2 * self.MARGIN[1]))
         depth_scale = depth[::100, ::100]
         self.depth = cv.resize(
-            depth_scale, dsize=self.IMAGE_SIZE, interpolation=cv.INTER_CUBIC)
+            depth_scale, dsize=dsize, interpolation=cv.INTER_CUBIC)
 
     def remap(self):
-        img_gray = cv.cvtColor(self.color_image_orign, cv.COLOR_BGR2GRAY)
-        image_height_coords = self.image_points[:, 0, 0].reshape(
-            self.depth_height_coords.shape).astype(np.float32)
-        image_width_coords = self.image_points[:, 0, 1].reshape(
-            self.depth_width_coords.shape).astype(np.float32)
+        # img_gray = cv.cvtColor(self.color_image_orign, cv.COLOR_BGR2GRAY)
+        # image_height_coords = self.image_points[:, 0, 0].reshape(
+        #     self.depth_height_coords.shape).astype(np.float32)
+        # image_width_coords = self.image_points[:, 0, 1].reshape(
+        #     self.depth_width_coords.shape).astype(np.float32)
 
-        remapped = cv.remap(img_gray, image_height_coords,
-                            image_width_coords, cv.INTER_CUBIC, None, cv.BORDER_REPLICATE)
-        plt.imshow(remapped)
-        plt.show()
+        # remapped = cv.remap(img_gray, image_height_coords,
+        #                     image_width_coords, cv.INTER_CUBIC, None, cv.BORDER_REPLICATE)
+        # plt.imshow(remapped)
+        # plt.show()
+        pass
 
     def project(self, xy_coords, pvec):
         alpha, beta = tuple(pvec[6:8])

@@ -5,17 +5,18 @@ from image_process import ImageProcess
 
 
 class Viewer(tk.Frame): 
-    def __init__(self, master):
+    def __init__(self, master,screnn_size):
         FONT_SIZE = 13
         #image
         INPUT_POSITION_X = 10
         INPUT_POSITION_Y = 10
         INPUT_IMAGE_PLACE_Y = 30
-        IMAGE_WIDTH = 500
+        IMAGE_WIDTH = int(screnn_size[0] / 5)
+        LIVE_PLACE_X = 3*IMAGE_WIDTH + INPUT_POSITION_X
         OUTPUT_PLACE_X = 2*IMAGE_WIDTH + INPUT_POSITION_X
         DEPTH_PLACE_X = IMAGE_WIDTH + INPUT_POSITION_X
         #button
-        BUTTON_PLACE_X = 3.2*IMAGE_WIDTH + INPUT_POSITION_X
+        BUTTON_PLACE_X = 4*IMAGE_WIDTH + INPUT_POSITION_X
         RUN_BUTTON_Y = INPUT_POSITION_Y + 40
         VISUAL_BUTTON_Y = RUN_BUTTON_Y + 40
         ON_BUTTON_Y = VISUAL_BUTTON_Y + 40
@@ -42,6 +43,11 @@ class Viewer(tk.Frame):
         depth_text.place(x=DEPTH_PLACE_X, y=INPUT_POSITION_Y)
         self.depth_image = tk.Label()
         self.upload_image_to_tkinter(self.depth_image, dobi, DEPTH_PLACE_X, INPUT_IMAGE_PLACE_Y)
+
+        live_text = tk.Label(text='live Image', font=font)
+        live_text.place(x=LIVE_PLACE_X, y=INPUT_POSITION_Y)
+        self.live_image = tk.Label()
+        self.upload_image_to_tkinter(self.live_image, dobi, LIVE_PLACE_X, INPUT_IMAGE_PLACE_Y)
 
         # shooting button
         shooting_button = tk.Button(overrelief='solid', text='Capture!', command=self.shotting)
@@ -89,11 +95,13 @@ class Viewer(tk.Frame):
         self.imgProc.visual()
 
 def main():
+    screnn_size = (1400, 1050)
+    screen_geometry = f'{screnn_size[0]}x{screnn_size[1]}+50+50'
     root = tk.Tk()
     root.title('졸업합시다')
-    root.geometry("1900x960+50+50")
+    root.geometry(screen_geometry)
     root.resizable(False, False)
-    app = Viewer(root)
+    app = Viewer(root, screnn_size)
     root.mainloop()
 
 

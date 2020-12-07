@@ -4,11 +4,13 @@ import numpy as np
 import pyrealsense2 as rs
 import matplotlib.pyplot as plt
 import scipy.optimize
+import crop
+import page_dewarp
 
 
 class ImageProcess:
     def __init__(self):
-        self.MARGIN = (50,50)
+        self.iscaptured = False
         self.IMAGE_SIZE = (1280, 720)
         self.depth_colormap = None
         self.color_image = None
@@ -22,32 +24,45 @@ class ImageProcess:
 
     def on(self):
         self.pipeline.start(self.config)
+        while not self.iscaptured:
+            frames = self.pipeline.wait_for_frames()
+            color_frame = frames.get_color_frame()
+            color_image = np.asanyarray(color_frame.get_data())
+            cv.imshow('liv', color_image)
+            key = cv.waitKey(1) & 0xFF
+            if key == ord('s'):
+                cv.waitKey(0)
+                break
+        cv.destroyAllWindows()
 
     def off(self):
         self.pipeline.stop()
+        self.iscaptured = False
 
-    def shotting(self):
+    def shotting(self): 
+        self.iscaptured = True
         self.capture()
         self.filtering()
-        self.color_image_orign = np.asanyarray(self.color_frame.get_data())
-        color_x, color_y, _ = self.color_image_orign.shape
-        self.input_image = self.color_image_orign[self.MARGIN[0] : color_x - self.MARGIN[0], self.MARGIN[1] : color_y - self.MARGIN[1]]
-        color_resize = cv.resize(self.color_image_orign, dsize=(0,0), fx=0.3, fy=0.3, interpolation=cv.INTER_LINEAR)
-        depth_resize = cv.resize(self.colorized_depth, dsize=(0,0), fx=0.3, fy=0.3, interpolation=cv.INTER_LINEAR)
+        color_image_orign = np.asanyarray(self.color_frame.get_data())
+        refPt = crop.crop(color_image_orign)
+        self.input_image = color_image_orign[refPt[0][1]: refPt[1][1],
+                                             refPt[0][0]: refPt[1][0]]
+        depth_roi = self.colorized_depth[refPt[0][1]: refPt[1][1],
+                                         refPt[0][0]: refPt[1][0]]
+        color_resize = cv.resize(self.input_image, dsize=(
+            0, 0), fx=0.6, fy=0.6, interpolation=cv.INTER_LINEAR)
+        depth_resize = cv.resize(depth_roi, dsize=(
+            0, 0), fx=0.6, fy=0.6, interpolation=cv.INTER_LINEAR)
 
-        self.depth_colormap = np.swapaxes(depth_resize, 0, 1)
-        self.color_image = np.swapaxes(color_resize, 0, 1)
-        self.get_depth_info()
-        print(self.input_image.shape)
-        print(self.depth.shape)
+        self.depth_colormap = depth_resize
+        self.color_image = color_resize
+        self.get_depth_info(refPt)
 
-    def get_depth_info(self):
+    def get_depth_info(self, refPt):
         depth = np.asanyarray(self.aligned_depth_frame)
-        depth_x, depth_y = depth.shape
-        margin_depth = depth[self.MARGIN[0] : depth_x - self.MARGIN[0], self.MARGIN[1] : depth_y - self.MARGIN[1]]
-        depth_zero = margin_depth[np.where(margin_depth >= 200)].min()
-        depth = margin_depth - depth_zero
-        self.interpolation(depth)
+        depth_roi = depth[refPt[0][1]: refPt[1][1],
+                          refPt[0][0]: refPt[1][0]]
+        self.interpolation(depth_roi)
 
     def capture(self):
         self.depth_frams = []
@@ -79,54 +94,66 @@ class ImageProcess:
         self.colorized_depth = np.asanyarray(
             self.colorizer.colorize(frame).get_data())
 
+    # version 1
+    # def run(self):
+    #     self.depth_to_world()
+    #     image_points = self.solve()
+    #     self.remap(image_points)
+
+    # versione 2
+    # def run(self):
+    #     self.depth_to_world()
+    #     params = self.solve()
+    #     parmas = self.optimaize(params)
+    #     self.remap(parmas)
+
+    # version 3
     def run(self):
-        self.depth_to_world()
-        params = self.solve()
-        self.optimaize(params)
-        # self.remap()
+        self.output_image = page_dewarp.run_dewarp(self.input_image)
+
 
     def interpolation(self, depth):
-        dsize = (self.IMAGE_SIZE[0] - (2 * self.MARGIN[0]), self.IMAGE_SIZE[1] - (2 * self.MARGIN[1]))
-        depth_scale = depth[::100, ::100]
-        self.depth = cv.resize(
-            depth_scale, dsize=dsize, interpolation=cv.INTER_CUBIC)
+        max_z = depth.max()
+        depth = depth.astype(np.int16)
+        depth *= -1
+        depth += max_z
+        self.depth = depth
 
-    def remap(self):
-        # img_gray = cv.cvtColor(self.color_image_orign, cv.COLOR_BGR2GRAY)
-        # image_height_coords = self.image_points[:, 0, 0].reshape(
-        #     self.depth_height_coords.shape).astype(np.float32)
-        # image_width_coords = self.image_points[:, 0, 1].reshape(
-        #     self.depth_width_coords.shape).astype(np.float32)
+    # version1
+    # def remap(self, image_points):
+    #     img_gray = cv.cvtColor(self.input_image, cv.COLOR_BGR2GRAY)
+    #     x,y = img_gray.shape
+    #     image_height_coords = image_points[:, 0, 0].reshape(
+    #         (y, x)).astype(np.float32).T 
+    #     image_width_coords = image_points[:, 0, 1].reshape(
+    #         (y, x)).astype(np.float32).T 
 
-        # remapped = cv.remap(img_gray, image_height_coords,
-        #                     image_width_coords, cv.INTER_CUBIC, None, cv.BORDER_REPLICATE)
-        # plt.imshow(remapped)
-        # plt.show()
-        pass
+    #     remapped = cv.remap(img_gray, image_height_coords,
+    #                         image_width_coords, cv.INTER_CUBIC, None, cv.BORDER_REPLICATE)
+    #     plt.imshow(remapped)
+    #     plt.show()
 
-    def project(self, xy_coords, pvec):
-        alpha, beta = tuple(pvec[6:8])
-        poly = np.array([
-            alpha + beta,
-            -2*alpha - beta,
-            alpha,
-            0
-        ])
-        xy_coords = xy_coords.reshape((-1, 2))
-        z_coords = np.polyval(poly, xy_coords[:, 0])
-        objpoints = np.hstack((xy_coords, z_coords.reshape(-1, 1)))
-        return objpoints
+    #version2 
+    def remap(self, parmas):
+        rvec = parmas[:3]
+        tvec = parmas[3:6]
+        image_points, _ = cv.projectPoints(
+            self.objpoints, rvec, tvec, self.K, np.zeros(5))
 
-    def optimaize(self, parmas):
-        def objective(pvec):
-            objpoints = self.project(self.depth_hw_coords, pvec)
-            return np.sum((self.world[:,2] - objpoints[:,2])**2)
-        
-        res = scipy.optimize.minimize(objective, parmas, method='Powell')
-        return res
+        img_gray = cv.cvtColor(self.input_image, cv.COLOR_BGR2GRAY)
+        x,y = img_gray.shape
+        image_height_coords = image_points[:, 0, 0].reshape(
+            (y, x)).astype(np.float32).T 
+        image_width_coords = image_points[:, 0, 1].reshape(
+            (y, x)).astype(np.float32).T 
 
+        remapped = cv.remap(img_gray, image_height_coords,
+                            image_width_coords, cv.INTER_CUBIC, None, cv.BORDER_REPLICATE)
+        plt.imshow(remapped)
+        plt.show()
+
+    # version 2
     def solve(self):
-        # r:3, t:3, cubic:2 parms-> 8
         cubic_slopes = [0.0, 0.0]
         self.K = np.float32([[1, 0, 0],
                         [0, 1, 0],
@@ -139,11 +166,43 @@ class ImageProcess:
                             np.array(cubic_slopes).flatten(),
                             ))
 
-        # image_points, _ = cv.projectPoints(
-        #     self.world, rotation_vector, translation_vector, K, np.zeros(5))
-
-        # self.image_points = image_points
         return parmas
+
+    def project(self, xy_coords, pvec):
+        alpha, beta = tuple(pvec[6:8])
+        poly = np.array([
+            alpha + beta,
+            -2*alpha - beta,
+            alpha,
+            0
+        ])
+        xy_coords = xy_coords.reshape((-1, 2))
+        z_coords = np.polyval(poly, xy_coords[:, 0])
+        self.objpoints = np.hstack((xy_coords, z_coords.reshape(-1, 1)))
+        return self.objpoints
+
+    def optimaize(self, parmas):
+        def objective(pvec):
+            objpoints = self.project(self.depth_hw_coords, pvec)
+            return np.sum((self.world[:,2] - objpoints[:,2])**2)
+        
+        res = scipy.optimize.minimize(objective, parmas, method='Powell')
+        return res.x
+
+    # version 1
+    # def solve(self):
+    #     cubic_slopes = [0.0, 0.0]
+    #     K = np.float32([[1, 0, 0],
+    #                          [0, 1, 0],
+    #                          [0, 0, 1]])
+    #     _, rvec, tvec = cv.solvePnP(
+    #         self.world_list, self.image_list, K, np.zeros(5))
+
+
+    #     image_points, _ = cv.projectPoints(
+    #         self.world, rvec, tvec, K, np.zeros(5))
+
+    #     return image_points
 
     def depth_to_world(self):
         depth_height, depth_width = self.depth.shape
@@ -157,34 +216,44 @@ class ImageProcess:
         self.world = np.hstack(
             (self.depth_hw_coords, depth_coords.reshape((-1, 1))))
 
-        CENTER_WIDTH = int(depth_width / 2)
-        CENTER_C_WIDTH = int(CENTER_WIDTH / 2)
-        CENTER_HEIGHT = int(depth_height / 2)
-        CENTER_C_HEIGHT = int(CENTER_HEIGHT / 2)
+        target_0 = self.world[np.where(self.world[:, 0] == 0)]
+        target_bottom = self.world[np.where(self.world[:, 0] == depth_height - 1)]
+        left_top = target_0[np.where(target_0[:, 1] == 0)][0]
+        right_top = target_0[np.where(target_0[:, 1] == depth_width - 1)][0]
+        left_bottom = target_bottom[np.where(target_bottom[:, 1] == 0)][0]
+        right_bottom = target_bottom[np.where(target_bottom[:, 1] == depth_width - 1)][0]
+
+        target_c = self.world[np.where(self.world[:, 0] == int((depth_height -1) / 2))]
+        center = target_c[np.where(target_c[:, 1] == int((depth_width -1) / 2 ))][0]
+
+        target_top_c = self.world[np.where(self.world[:, 0] == int((depth_height -1) / 4))]
+        target_bottom_c = self.world[np.where(self.world[:, 0] == int((depth_height -1) * (3/4)))]
+        center_top_left = target_top_c[np.where(target_top_c[:, 1] == int((depth_width -1) / 4 ))][0]
+        center_top_right = target_top_c[np.where(target_top_c[:, 1] == int((depth_width -1) * (3/4) ))][0]
+        center_bottom_left = target_bottom_c[np.where(target_bottom_c[:, 1] == int((depth_width -1) / 4 ))][0]
+        center_bottom_right = target_bottom_c[np.where(target_bottom_c[:, 1] == int((depth_width -1) * (3/4) ))][0]
         self.world_list = np.array([
-            [0, 0, 0],  # page 왼쪽 상단
-            [depth_height, 0, 0],  # page 왼쪽 아래
-            [0, depth_width, 0],  # page 오른쪽 상단
-            [depth_height, depth_width, 0],  # page 오른쪽 하단
-            [CENTER_HEIGHT, CENTER_WIDTH, 0],  # center
-            [CENTER_C_HEIGHT, CENTER_C_WIDTH, 0],  # 왼쪽 상단 중간
-            [CENTER_C_HEIGHT, CENTER_WIDTH + CENTER_C_WIDTH, 0],  # 오른쪽 상단 중간
-            [CENTER_HEIGHT + CENTER_C_HEIGHT, CENTER_WIDTH + \
-                CENTER_C_WIDTH, 0],  # 오른쪽 하단 중간
-            [CENTER_HEIGHT + CENTER_C_HEIGHT, CENTER_C_WIDTH, 0],  # 왼쪽 하단 중간
+            left_top,  # page 왼쪽 상단
+            left_bottom,  # page 왼쪽 아래
+            right_top,  # page 오른쪽 상단
+            right_bottom,  # page 오른쪽 하단
+            center,  # center
+            center_top_left,  # 왼쪽 상단 중간
+            center_top_right,  # 오른쪽 상단 중간
+            center_bottom_right,  # 오른쪽 하단 중간
+            center_bottom_left,  # 왼쪽 하단 중간
         ], dtype=np.float32)
 
         self.image_list = np.array([
-            [0, 0],  # page 왼쪽 상단
-            [depth_height, 0],  # page 왼쪽 아래
-            [0, depth_width],  # page 오른쪽 상단
-            [depth_height, depth_width],  # page 오른쪽 하단
-            [CENTER_HEIGHT, CENTER_WIDTH],  # center
-            [CENTER_C_HEIGHT, CENTER_C_WIDTH],  # 왼쪽 상단 중간
-            [CENTER_C_HEIGHT, CENTER_WIDTH + CENTER_C_WIDTH],  # 오른쪽 상단 중간
-            [CENTER_HEIGHT + CENTER_C_HEIGHT,
-                CENTER_WIDTH + CENTER_C_WIDTH],  # 오른쪽 하단 중간
-            [CENTER_HEIGHT + CENTER_C_HEIGHT, CENTER_C_WIDTH]  # 왼쪽 하단 중간
+            left_top[:2],  # page 왼쪽 상단
+            left_bottom[:2],  # page 왼쪽 아래
+            right_top[:2],  # page 오른쪽 상단
+            right_bottom[:2],  # page 오른쪽 하단
+            center[:2],  # center
+            center_top_left[:2],  # 왼쪽 상단 중간
+            center_top_right[:2],  # 오른쪽 상단 중간
+            center_bottom_right[:2],  # 오른쪽 하단 중간
+            center_bottom_left[:2]  # 왼쪽 하단 중간
         ], dtype=np.float32)
 
     def visual(self):
@@ -192,12 +261,14 @@ class ImageProcess:
         depth_x, depth_y = self.depth.shape
 
         # graph axis x,y
-        x = np.linspace(0, depth_x - 1, int(depth_x/10))
-        y = np.linspace(0, depth_y - 1, int(depth_y/10))
-        yy, xx = np.meshgrid(x, y)
+        x = np.linspace(0, depth_x - 1, depth_x)
+        y = np.linspace(0, depth_y - 1, depth_y)
+        x = x[::10]
+        y = y[::10]
+        xx, yy = np.meshgrid(x, y)
 
-        depth_sclae = self.depth[::10, ::10].T
+        depth_sclae = self.depth[::10, ::10]
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
-        ax.scatter(xx, yy, depth_sclae, s=1, cmap='Greens')
+        ax.scatter(xx.T, yy.T, depth_sclae, s=1, cmap='Greens')
         plt.show()

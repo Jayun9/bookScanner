@@ -2,6 +2,8 @@ import tkinter as tk
 import tkinter.font as tf
 from PIL import ImageTk, Image
 from image_process import ImageProcess 
+import pyrealsense2 as rs
+import threading
 
 
 class Viewer(tk.Frame): 
@@ -12,7 +14,6 @@ class Viewer(tk.Frame):
         INPUT_POSITION_Y = 10
         INPUT_IMAGE_PLACE_Y = 30
         IMAGE_WIDTH = int(screnn_size[0] / 5)
-        LIVE_PLACE_X = 3*IMAGE_WIDTH + INPUT_POSITION_X
         OUTPUT_PLACE_X = 2*IMAGE_WIDTH + INPUT_POSITION_X
         DEPTH_PLACE_X = IMAGE_WIDTH + INPUT_POSITION_X
         #button
@@ -44,10 +45,6 @@ class Viewer(tk.Frame):
         self.depth_image = tk.Label()
         self.upload_image_to_tkinter(self.depth_image, dobi, DEPTH_PLACE_X, INPUT_IMAGE_PLACE_Y)
 
-        live_text = tk.Label(text='live Image', font=font)
-        live_text.place(x=LIVE_PLACE_X, y=INPUT_POSITION_Y)
-        self.live_image = tk.Label()
-        self.upload_image_to_tkinter(self.live_image, dobi, LIVE_PLACE_X, INPUT_IMAGE_PLACE_Y)
 
         # shooting button
         shooting_button = tk.Button(overrelief='solid', text='Capture!', command=self.shotting)
@@ -62,11 +59,12 @@ class Viewer(tk.Frame):
         on_button = tk.Button(overrelief='solid', text='on', command=self.on)
         on_button.place(x=BUTTON_PLACE_X, y=ON_BUTTON_Y)
         
-        off_button = tk.Button(overrelief='solid', text='off', command=self.off)
+        off_button = tk.Button(overrelief='solid', text='reset', command=self.off)
         off_button.place(x=BUTTON_PLACE_X, y=OFF_BUTTON_Y)
         
     def on(self):
-        self.imgProc.on()
+        t1 = threading.Thread(target=self.imgProc.on)
+        t1.start()
 
     def off(self):
         self.imgProc.off()
@@ -80,6 +78,9 @@ class Viewer(tk.Frame):
 
     def run(self):
         self.imgProc.run()
+        output_ndarray = self.imgProc.output_image
+        output_image = ImageTk.PhotoImage(image=Image.fromarray(output_ndarray))
+        self.upload_image_to_tkinter(self.ouput_image, output_image)
 
     def shotting(self):
         self.imgProc.shotting()
@@ -95,7 +96,7 @@ class Viewer(tk.Frame):
         self.imgProc.visual()
 
 def main():
-    screnn_size = (1400, 1050)
+    screnn_size = (1400, 850)
     screen_geometry = f'{screnn_size[0]}x{screnn_size[1]}+50+50'
     root = tk.Tk()
     root.title('졸업합시다')

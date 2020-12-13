@@ -17,11 +17,14 @@ class Viewer(tk.Frame):
         OUTPUT_PLACE_X = 2*IMAGE_WIDTH + INPUT_POSITION_X
         DEPTH_PLACE_X = IMAGE_WIDTH + INPUT_POSITION_X
         #button
-        BUTTON_PLACE_X = 4*IMAGE_WIDTH + INPUT_POSITION_X
+        BUTTON_WIDTH = 10
+        BUTTON_HEIGHT = 2
+        WIDHT = int(screnn_size[0]/2)
+        BUTTON_X = 3 * int(WIDHT / 3)
+        BUTTON_Y = 820
         RUN_BUTTON_Y = INPUT_POSITION_Y + 40
         VISUAL_BUTTON_Y = RUN_BUTTON_Y + 40
         ON_BUTTON_Y = VISUAL_BUTTON_Y + 40
-        OFF_BUTTON_Y = ON_BUTTON_Y + 40
 
         self.imgProc = ImageProcess()
         dobi = ImageTk.PhotoImage(Image.open('dobi.png'))
@@ -47,17 +50,17 @@ class Viewer(tk.Frame):
 
 
         # shooting button
-        shooting_button = tk.Button(master, overrelief='solid', text='Capture!', command=self.shotting, repeatdelay=1000, repeatinterval=100)
-        shooting_button.place(x=BUTTON_PLACE_X, y=INPUT_POSITION_Y)
+        shooting_button = tk.Button(master, overrelief='solid', text='CAPTURE', command=self.shotting, width=BUTTON_WIDTH, height=BUTTON_HEIGHT)
+        shooting_button.place(x=BUTTON_X, y=BUTTON_Y)
 
-        run_button = tk.Button(master, overrelief='solid', text='Run', command=self.run)
-        run_button.place(x=BUTTON_PLACE_X, y=RUN_BUTTON_Y)
+        run_button = tk.Button(master, overrelief='solid', text='RUN', command=self.run, width=BUTTON_WIDTH, height=BUTTON_HEIGHT)
+        run_button.place(x=BUTTON_X + 10*BUTTON_WIDTH + 5, y=BUTTON_Y)
 
-        visual_button = tk.Button(master, overrelief='solid', text='visual', command=self.visual)
-        visual_button.place(x=BUTTON_PLACE_X, y=VISUAL_BUTTON_Y)
+        visual_button = tk.Button(master, overrelief='solid', text='VISUAL', command=self.visual, width=BUTTON_WIDTH, height=BUTTON_HEIGHT)
+        visual_button.place(x=BUTTON_X + 2*10*BUTTON_WIDTH + 5, y=BUTTON_Y)
         
-        off_button = tk.Button(master, overrelief='solid', text='reset', command=self.off)
-        off_button.place(x=BUTTON_PLACE_X, y=OFF_BUTTON_Y)
+        save_button = tk.Button(master, overrelief='solid', text='SAVE', command=self.save, width=BUTTON_WIDTH, height=BUTTON_HEIGHT)
+        save_button.place(x=BUTTON_X + 3*10*BUTTON_WIDTH + 5, y=BUTTON_Y)
 
         self.t1 = threading.Thread(target=self.imgProc.on)
         self.t1.start()
@@ -65,7 +68,7 @@ class Viewer(tk.Frame):
     def __del__(self):
         self.imgProc.stream_stop = True
         
-    def off(self):
+    def save(self):
         self.imgProc.off()
         
     def upload_image_to_tkinter(self, label, img, *place):

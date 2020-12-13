@@ -60,8 +60,8 @@ class ImageProcess:
         while self.input_image is None:
             continue
         self.capture_image = self.input_image
-        height, width = self.input_image.shape[:2]
-        fx = 250 / width
+        width = self.input_image.shape[1]
+        fx = 450 / width
         color_resize = cv.resize(self.input_image, dsize=(
             0, 0), fx=fx, fy=fx, interpolation=cv.INTER_LINEAR)
         depth_resize = cv.resize(self.depth_roi, dsize=(
@@ -126,7 +126,7 @@ class ImageProcess:
     def run(self):
         output_image = page_dewarp.run_dewarp(self.capture_image)
         width = output_image.shape[1]
-        fx = 250 / width
+        fx = 450 / width
         self.output_image = cv.resize(output_image, dsize=(0,0), fx=fx, fy=fx, interpolation=cv.INTER_AREA)
 
 

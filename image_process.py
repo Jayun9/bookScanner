@@ -21,10 +21,12 @@ class ImageProcess:
         self.config.enable_stream(
             rs.stream.color, self.IMAGE_SIZE[0], self.IMAGE_SIZE[1], rs.format.bgr8, 6)
         self.colorizer = rs.colorizer()
+        self.input_image = None
+        self.stream_stop = False
 
     def on(self):
         self.pipeline.start(self.config)
-        while not self.iscaptured:
+        while (True):
             frames = self.pipeline.wait_for_frames()
             color_frame = frames.get_color_frame()
             color_image = np.asanyarray(color_frame.get_data())
@@ -33,6 +35,20 @@ class ImageProcess:
             if key == ord('s'):
                 cv.waitKey(0)
                 break
+            if self.stream_stop:
+                break
+            if self.iscaptured == True:
+                self.capture()
+                self.filtering()
+                color_image_orign = np.asanyarray(self.color_frame.get_data())
+                refPt = crop.crop(color_image_orign)
+                self.input_image = color_image_orign[refPt[0][1]: refPt[1][1],
+                                                    refPt[0][0]: refPt[1][0]]
+                self.depth_roi = self.colorized_depth[refPt[0][1]: refPt[1][1],
+                                                refPt[0][0]: refPt[1][0]]
+                self.refPt = refPt
+                refPt = None
+                self.iscaptured = False
         cv.destroyAllWindows()
 
     def off(self):
@@ -41,27 +57,26 @@ class ImageProcess:
 
     def shotting(self): 
         self.iscaptured = True
-        self.capture()
-        self.filtering()
-        color_image_orign = np.asanyarray(self.color_frame.get_data())
-        refPt = crop.crop(color_image_orign)
-        self.input_image = color_image_orign[refPt[0][1]: refPt[1][1],
-                                             refPt[0][0]: refPt[1][0]]
-        depth_roi = self.colorized_depth[refPt[0][1]: refPt[1][1],
-                                         refPt[0][0]: refPt[1][0]]
+        while self.input_image is None:
+            continue
+        self.capture_image = self.input_image
+        height, width = self.input_image.shape[:2]
+        fx = 250 / width
         color_resize = cv.resize(self.input_image, dsize=(
-            0, 0), fx=0.6, fy=0.6, interpolation=cv.INTER_LINEAR)
-        depth_resize = cv.resize(depth_roi, dsize=(
-            0, 0), fx=0.6, fy=0.6, interpolation=cv.INTER_LINEAR)
+            0, 0), fx=fx, fy=fx, interpolation=cv.INTER_LINEAR)
+        depth_resize = cv.resize(self.depth_roi, dsize=(
+            0, 0), fx=fx, fy=fx, interpolation=cv.INTER_LINEAR)
 
-        self.depth_colormap = depth_resize
-        self.color_image = color_resize
-        self.get_depth_info(refPt)
+        self.depth_colormap = depth_resize.copy()
+        self.color_image = color_resize.copy()
+        self.get_depth_info()
+        self.input_image = None
+        return self.depth_colormap, self.color_image
 
-    def get_depth_info(self, refPt):
+    def get_depth_info(self):
         depth = np.asanyarray(self.aligned_depth_frame)
-        depth_roi = depth[refPt[0][1]: refPt[1][1],
-                          refPt[0][0]: refPt[1][0]]
+        depth_roi = depth[self.refPt[0][1]: self.refPt[1][1],
+                          self.refPt[0][0]: self.refPt[1][0]]
         self.interpolation(depth_roi)
 
     def capture(self):
@@ -109,7 +124,10 @@ class ImageProcess:
 
     # version 3
     def run(self):
-        self.output_image = page_dewarp.run_dewarp(self.input_image)
+        output_image = page_dewarp.run_dewarp(self.capture_image)
+        width = output_image.shape[1]
+        fx = 250 / width
+        self.output_image = cv.resize(output_image, dsize=(0,0), fx=fx, fy=fx, interpolation=cv.INTER_AREA)
 
 
     def interpolation(self, depth):

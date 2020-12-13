@@ -47,25 +47,24 @@ class Viewer(tk.Frame):
 
 
         # shooting button
-        shooting_button = tk.Button(overrelief='solid', text='Capture!', command=self.shotting)
+        shooting_button = tk.Button(master, overrelief='solid', text='Capture!', command=self.shotting, repeatdelay=1000, repeatinterval=100)
         shooting_button.place(x=BUTTON_PLACE_X, y=INPUT_POSITION_Y)
 
-        run_button = tk.Button(overrelief='solid', text='Run', command=self.run)
+        run_button = tk.Button(master, overrelief='solid', text='Run', command=self.run)
         run_button.place(x=BUTTON_PLACE_X, y=RUN_BUTTON_Y)
 
-        visual_button = tk.Button(overrelief='solid', text='visual', command=self.visual)
+        visual_button = tk.Button(master, overrelief='solid', text='visual', command=self.visual)
         visual_button.place(x=BUTTON_PLACE_X, y=VISUAL_BUTTON_Y)
-
-        on_button = tk.Button(overrelief='solid', text='on', command=self.on)
-        on_button.place(x=BUTTON_PLACE_X, y=ON_BUTTON_Y)
         
-        off_button = tk.Button(overrelief='solid', text='reset', command=self.off)
+        off_button = tk.Button(master, overrelief='solid', text='reset', command=self.off)
         off_button.place(x=BUTTON_PLACE_X, y=OFF_BUTTON_Y)
-        
-    def on(self):
-        t1 = threading.Thread(target=self.imgProc.on)
-        t1.start()
 
+        self.t1 = threading.Thread(target=self.imgProc.on)
+        self.t1.start()
+
+    def __del__(self):
+        self.imgProc.stream_stop = True
+        
     def off(self):
         self.imgProc.off()
         
@@ -83,13 +82,11 @@ class Viewer(tk.Frame):
         self.upload_image_to_tkinter(self.ouput_image, output_image)
 
     def shotting(self):
-        self.imgProc.shotting()
-        depth_image_ndarray = self.imgProc.depth_colormap
-        depth_image = ImageTk.PhotoImage(image=Image.fromarray(depth_image_ndarray))
+        depth_array, image_array = self.imgProc.shotting()
+        depth_image = ImageTk.PhotoImage(image=Image.fromarray(depth_array))
         self.upload_image_to_tkinter(self.depth_image, depth_image)
 
-        input_image_ndarray = self.imgProc.color_image
-        input_image = ImageTk.PhotoImage(image=Image.fromarray(input_image_ndarray))
+        input_image = ImageTk.PhotoImage(image=Image.fromarray(image_array))
         self.upload_image_to_tkinter(self.input_image, input_image)
 
     def visual(self):

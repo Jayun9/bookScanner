@@ -4,16 +4,18 @@ from PIL import ImageTk, Image
 from image_process import ImageProcess 
 import pyrealsense2 as rs
 import threading
+from tkinter.simpledialog import askstring
 
 
 class Viewer(tk.Frame): 
     def __init__(self, master,screnn_size):
+        self.svae_folder_name = None
         FONT_SIZE = 13
         #image
         INPUT_POSITION_X = 10
         INPUT_POSITION_Y = 10
         INPUT_IMAGE_PLACE_Y = 30
-        IMAGE_WIDTH = int(screnn_size[0] / 5)
+        IMAGE_WIDTH = int(screnn_size[0] / 3)
         OUTPUT_PLACE_X = 2*IMAGE_WIDTH + INPUT_POSITION_X
         DEPTH_PLACE_X = IMAGE_WIDTH + INPUT_POSITION_X
         #button
@@ -21,7 +23,7 @@ class Viewer(tk.Frame):
         BUTTON_HEIGHT = 2
         WIDHT = int(screnn_size[0]/2)
         BUTTON_X = 3 * int(WIDHT / 3)
-        BUTTON_Y = 820
+        BUTTON_Y = 800
         RUN_BUTTON_Y = INPUT_POSITION_Y + 40
         VISUAL_BUTTON_Y = RUN_BUTTON_Y + 40
         ON_BUTTON_Y = VISUAL_BUTTON_Y + 40
@@ -69,7 +71,9 @@ class Viewer(tk.Frame):
         self.imgProc.stream_stop = True
         
     def save(self):
-        self.imgProc.off()
+        if self.svae_folder_name is None:
+            self.svae_folder_name = askstring("SAVE", "Enter the name of the folder to be saved")
+        self.imgProc.save(self.svae_folder_name) 
         
     def upload_image_to_tkinter(self, label, img, *place):
         axis = place
@@ -94,6 +98,7 @@ class Viewer(tk.Frame):
 
     def visual(self):
         self.imgProc.visual()
+
 
 def main():
     screnn_size = (1400, 850)

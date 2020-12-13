@@ -10,6 +10,7 @@ import page_dewarp
 
 class ImageProcess:
     def __init__(self):
+        self.img_number = 1
         self.iscaptured = False
         self.IMAGE_SIZE = (1280, 720)
         self.depth_colormap = None
@@ -23,6 +24,14 @@ class ImageProcess:
         self.colorizer = rs.colorizer()
         self.input_image = None
         self.stream_stop = False
+
+    def save(self, svae_folder_name):
+        save_folder = f'./{svae_folder_name}'
+        if not os.path.isdir(save_folder):
+            os.makedirs(save_folder)
+        filename = f'{save_folder}/{self.img_number}.jpg'
+        cv.imwrite(filename, self.result_img)
+        self.img_number += 1
 
     def on(self):
         self.pipeline.start(self.config)
@@ -124,10 +133,10 @@ class ImageProcess:
 
     # version 3
     def run(self):
-        output_image = page_dewarp.run_dewarp(self.capture_image)
-        width = output_image.shape[1]
+        self.result_img = page_dewarp.run_dewarp(self.capture_image)
+        width =self.result_img.shape[1]
         fx = 450 / width
-        self.output_image = cv.resize(output_image, dsize=(0,0), fx=fx, fy=fx, interpolation=cv.INTER_AREA)
+        self.output_image = cv.resize(self.result_img, dsize=(0,0), fx=fx, fy=fx, interpolation=cv.INTER_AREA)
 
 
     def interpolation(self, depth):
